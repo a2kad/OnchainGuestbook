@@ -3,6 +3,10 @@
 A mini dApp where anyone can leave an on-chain message on Base Sepolia.
 No data is stored in contract storage — everything goes through events (gas efficient).
 
+## 🏆 Competition
+This project is part of the 42Blockchain launch competition.
+🔗 [My Twitter/X post](https://x.com/r_reshetnikov/status/2068420820435599863)
+
 ## Contract
 - Address: `0x6a69c72BE533a575159D6e6Ef2fF1711603de0b0`
 - Network: Base Sepolia (chainId 84532)
@@ -29,16 +33,7 @@ Open the URL shown in the terminal (e.g. http://localhost:3000).
 ## Stack
 Solidity 0.8.24 · Vanilla JS · ethers.js v6 (via esm.sh)
 
-## Technical details
-- No npm dependencies on the frontend — `ethers.js` is imported directly via CDN (`esm.sh`), no build step.
-- Wallet connection uses `window.ethereum` (EIP-1193) directly, without RainbowKit/WalletConnect.
-- Messages are read via `queryFilter` over the last 1999 blocks (a limit enforced by the public `sepolia.base.org` RPC on `eth_getLogs`).
-- Transaction links point to `sepolia.basescan.org`.
-
 ## ⚠️ Limitations
 This is an educational project. Messages are stored permanently
 and publicly as blockchain events, and cannot be deleted or
 censored by the frontend owner.
-
-Reading messages is limited to the last ~1999 blocks (≈ 1h on Base Sepolia)
-due to a limit on the public RPC used.
