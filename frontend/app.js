@@ -7,6 +7,7 @@ const abi = [
 ];
 
 const BASE_SEPOLIA_CHAIN_ID = "0x14a34";
+const BASESCAN_TX_URL = "https://sepolia.basescan.org/tx/";
 
 let provider, signer, contract;
 
@@ -65,7 +66,6 @@ connectBtn.addEventListener("click", async () => {
     connectBtn.disabled = true;
 
     loadPosts();
-    contract.on("Posted", () => loadPosts());
   } catch (err) {
     console.error(err);
     statusEl.textContent = "Connection failed: " + err.message;
@@ -78,14 +78,16 @@ postBtn.addEventListener("click", async () => {
 
   try {
     postBtn.disabled = true;
-    statusEl.textContent = "Sending transaction...";
+    statusEl.innerHTML = "Sending transaction...";
 
     const tx = await contract.post(message);
-    statusEl.textContent = "Waiting for confirmation... tx: " + tx.hash;
+    statusEl.innerHTML = `Waiting for confirmation... tx: <a href="${BASESCAN_TX_URL}${tx.hash}" target="_blank" rel="noopener noreferrer">${tx.hash}</a>`;
 
     await tx.wait();
-    statusEl.textContent = "Confirmed! tx: " + tx.hash;
+    statusEl.innerHTML = `Confirmed! tx: <a href="${BASESCAN_TX_URL}${tx.hash}" target="_blank" rel="noopener noreferrer">${tx.hash}</a>`;
     messageInput.value = "";
+
+    await loadPosts();
   } catch (err) {
     console.error(err);
     statusEl.textContent = "Transaction failed: " + err.message;
@@ -95,17 +97,38 @@ postBtn.addEventListener("click", async () => {
 });
 
 async function loadPosts() {
-  const readProvider = new ethers.JsonRpcProvider("https://sepolia.base.org");
-  const readContract = new ethers.Contract(contractAddress, abi, readProvider);
+  try {
+    const readProvider = new ethers.JsonRpcProvider("https://sepolia.base.org");
+    const readContract = new ethers.Contract(contractAddress, abi, readProvider);
 
-  const filter = readContract.filters.Posted();
-  const currentBlock = await readProvider.getBlockNumber();
-  const events = await readContract.queryFilter(filter, currentBlock - 5000, currentBlock);
+    const filter = readContract.filters.Posted();
+    const currentBlock = await readProvider.getBlockNumber();
+    const fromBlock = Math.max(0, currentBlock - 1999);
+    const events = await readContract.queryFilter(filter, fromBlock, currentBlock);
 
-  postsEl.innerHTML = "";
-  events.reverse().slice(0, 20).forEach((e) => {
-    const li = document.createElement("li");
-    li.textContent = `${e.args.who.slice(0, 6)}...: ${e.args.message}`;
-    postsEl.appendChild(li);
-  });
+    postsEl.innerHTML = "";
+    events.reverse().slice(0, 20).forEach((e) => {
+      const li = document.createElement("li");
+      const date = new Date(Number(e.args.timestamp) * 1000);
+      const formattedDate = date.toLocaleString();
+
+      li.innerHTML = `
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 0.85em; color: #666;">
+            ${e.args.who.slice(0, 6)}...${e.args.who.slice(-4)} — ${formattedDate}
+          </div>
+          <div>${escapeHtml(e.args.message)}</div>
+        </div>
+      `;
+      postsEl.appendChild(li);
+    });
+  } catch (err) {
+    console.error("loadPosts failed:", err);
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
